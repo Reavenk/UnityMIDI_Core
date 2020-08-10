@@ -27,6 +27,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_STANDALONE || UNITY_WSA
+using System.Runtime.InteropServices;
+#endif
+
 /// <summary>
 /// The cross-platform manager for MIDI input and output.
 /// 
