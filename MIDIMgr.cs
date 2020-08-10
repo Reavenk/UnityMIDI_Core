@@ -24,6 +24,10 @@
 /// Multiplatform manager for input and output MIDI connections in Unity.
 /// </summary>
 
+#if UNITY_STANDALONE || UNITY_WSA
+using System.Runtime.InteropServices;
+#endif
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,7 +36,9 @@ using UnityEngine;
 /// 
 /// In order to use the MIDI library, this should be added as a singleton.s
 /// </summary>
-public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
+public class MIDIMgr : 
+    MonoBehaviour, 
+    IMIDIPollCountering
 {
     /// <summary>
     /// The current connected MIDI output used to send MIDI messages to another
