@@ -1,19 +1,36 @@
-﻿// <copyright file="MIDIMgr.cs" company="Pixel Precision LLC">
-// Copyright (c) 2020 All Rights Reserved
-// </copyright>
-// <author>William Leu</author>
-// <date>07/07/2020</date>
-// <summary>
-// Multiplatform manager for input and output MIDI connections in Unity.
-// </summary>
+﻿//MIT License
+//
+//Copyright (c) 2020 Pixel Precision LLC
+//
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
+//
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+//
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
+
+/// <summary>
+/// Multiplatform manager for input and output MIDI connections in Unity.
+/// </summary>
 
 using System.Collections.Generic;
 using UnityEngine;
-using System.Runtime.InteropServices;
-
 
 /// <summary>
+/// The cross-platform manager for MIDI input and output.
 /// 
+/// In order to use the MIDI library, this should be added as a singleton.s
 /// </summary>
 public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
 {
@@ -41,16 +58,33 @@ public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
     /// </summary>
     List<MIDIInput> knownInputs = new List<MIDIInput>();
 
-    // How often to do the polling
+    /// <summary>
+    /// How often to do the polling for input and output devices.
+    /// </summary>
     const float pollRate = 2.0f;
 
+    /// <summary>
+    /// The time value when the next polling should happen.
+    /// </summary>
     float nextPoll = 0.0f;
 
+    /// <summary>
+    /// The counter for input polling requests. If the counter is non-zero,
+    /// MIDI input devices will be polled at a regular rate.
+    /// </summary>
     int pollingInputCounter = 0;
+
+    /// <summary>
+    /// Counter for output polling requests. If the counter is non-zero,
+    /// MIDI output devices will be polled at a regular rate.
+    /// </summary>
     int pollingOutputCounter = 0;
 
-    HashSet<IMIDIMsgSink> midiDispatch = 
-        new HashSet<IMIDIMsgSink>();
+    /// <summary>
+    /// Subscribed message sinks. When a MIDI message is received, it will be
+    /// broadcasted to all subscribers.
+    /// </summary>
+    HashSet<IMIDIMsgSink> midiDispatch = new HashSet<IMIDIMsgSink>();
 
 #if UNITY_ANDROID
     enum AndroidSyncEvent
@@ -154,41 +188,77 @@ public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
     internal extern static bool MIDIMgr_IsHandleValid(int handle);
 #endif
 
+    /// <summary>
+    /// Singleton instance.
+    /// </summary>
     static MIDIMgr instance;
-    public static MIDIMgr Instance {get{return instance; } }
-
-    int controllerChannel = 1;
-
-    public Application app;
-
-
-
 
     /// <summary>
-    /// Fired when a MIDI message is sent out when using the application as a MIDI controller
+    /// Public singleton access.
+    /// </summary>
+    public static MIDIMgr Instance {get{return instance; } }
+
+    /// <summary>
+    /// The channel for output MIDI message. This should be between [1,16]
+    /// </summary>
+    int controllerChannel = 1;
+
+    /// <summary>
+    /// Callback fired when a MIDI message is sent out when using the application as a MIDI controller
     /// </summary>
     public System.Action<MIDIMgr> onMIDIControllerMsg;
 
+    /// <summary>
+    /// Callback fire when a controller has been connected.
+    /// </summary>
     public System.Action<MIDIMgr, MIDIOutput> onMIDIControllerConnected;
 
+    /// <summary>
+    /// Callback fired when a MIDI controller has been disconnected.
+    /// </summary>
     public System.Action<MIDIMgr> onMIDIControllerDisconnected;
 
+    /// <summary>
+    /// Callback fired when an input MIDI device is connected.
+    /// </summary>
     public System.Action<MIDIMgr, MIDIInput> onMIDIInputConnected;
 
+    /// <summary>
+    /// Callback fire when an input MIDI device is disconnected.
+    /// </summary>
     public System.Action<MIDIMgr> onMIDIInputDisconnected;
 
+    /// <summary>
+    /// Callback fired when the output MIDI channel is changed.
+    /// </summary>
     public System.Action<MIDIMgr, int> onMIDIChannelChanged;
 
+    /// <summary>
+    /// Callback fired when an input MIDI message is received. This callback is only meant to notify
+    /// of messages passing through the MIDI message bus, and lacks information in the actual message.
+    /// </summary>
     public System.Action<MIDIMgr> onMIDIInputMsg;
 
+    /// <summary>
+    /// Callback fire when the list of MIDI input devices known is updated.
+    /// </summary>
     public System.Action<MIDIMgr, List<MIDIInput>> onMIDIRefreshedInputs;
 
+    /// <summary>
+    /// Callback fired when the list of MIDI ouput devices known is updated.
+    /// </summary>
     public System.Action<MIDIMgr, List<MIDIOutput>> onMIDIRefreshedOutputs;
 
-    // First list is removed, second list is added
+    /// <summary>
+    /// Callback fired when the list of MIDI input devices has been changed.
+    /// First list is removed, second list is added.
+    /// </summary>
     public System.Action<MIDIMgr, List<MIDIInput>, List<MIDIInput>> onMIDIPollInputUpdated;
 
-    // First list is removed, second list is added
+    /// <summary>
+    /// Callback fired when the list of MIDI output devices has been changed.
+    /// First list is removed, second list is added.
+    /// </summary>
     public System.Action<MIDIMgr, List<MIDIOutput>, List<MIDIOutput>> onMIDIPollOutputUpdated;
 
     void Awake()
@@ -272,12 +342,6 @@ public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
 
         return ret;
     }
-
-    private void Start()
-    { 
-    }
-
-
 
     public void Update()
     {
@@ -613,6 +677,9 @@ public class MIDIMgr : MonoBehaviour, IMIDIPollCountering
                 foreach(IMIDIMsgSink sink in this.midiDispatch)
                 sink.MIDIMsg_OnSystemMsg(this, input, MIDISystemMsg.TimingCode);
             }
+            //
+            // Placeholders for currently umplemented messages
+            // 
             else if(channel == 0x2) // Song Position pointer
             { }
             else if(channel == 0x3) // Song Select
