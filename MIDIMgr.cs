@@ -31,9 +31,11 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 #if UNITY_STANDALONE || UNITY_WSA
 using System.Runtime.InteropServices;
 #endif
+
 
 /// <summary>
 /// The cross-platform manager for MIDI input and output.
@@ -314,6 +316,25 @@ public class MIDIMgr :
                     ret.Add( new MIDIInputAnd(this, mdi, pi));
             }
         }
+#elif UNITY_WEBGL && !UNITY_EDITOR
+        string json = MIDIWeb.QueryInputDevicesJSON();
+        try
+        { 
+            SimpleJSON.JSONNode jsn = SimpleJSON.JSON.Parse(json);
+            if(jsn != null || jsn.IsArray == true)
+            { 
+                SimpleJSON.JSONArray jsa = jsn.AsArray;
+                foreach(SimpleJSON.JSONNode jsd in jsa)
+                { 
+                    MIDIInputWeb miw = new MIDIInputWeb();
+                    //
+                    if(miw.ParseJSON(jsd) == true)
+                        ret.Add(miw);
+                }
+            }
+        }
+        catch(System.Exception)
+        { }
 #endif
 
         return ret;
@@ -348,6 +369,28 @@ public class MIDIMgr :
                     ret.Add( new MIDIOutputAnd(this, mdi, pi));
             }
         }
+
+#elif UNITY_WEBGL && !UNITY_EDITOR
+        string json = MIDIWeb.QueryOutputDevicesJSON();
+        try
+        { 
+            SimpleJSON.JSONNode jsn = SimpleJSON.JSON.Parse(json);
+            if(jsn != null || jsn.IsArray == true)
+            { 
+                SimpleJSON.JSONArray jsa = jsn.AsArray;
+                foreach(SimpleJSON.JSONNode jsd in jsa)
+                { 
+                    MIDIOutputWeb mow = new MIDIOutputWeb();
+                    //
+                    if(mow.ParseJSON(jsd) == true)
+                    {
+                        ret.Add(mow);
+                    }
+                }
+            }
+        }
+        catch(System.Exception)
+        { }
 #endif
 
         return ret;
@@ -552,7 +595,6 @@ public class MIDIMgr :
 
                 if(MIDIMgr_IsHandleValid(midiInWin.DeviceID) == false)
                 { 
-                    Debug.Log("MIDI handle became invalid");
                     this.SetCurrentInput(null);
                     return;
                 }
@@ -566,7 +608,6 @@ public class MIDIMgr :
                 for(uint i = 0; i < msgCt; ++i)
                 { 
                     MIDIQueuedMessage mqm = MIDIMgr_PopMIDIQueuedMessage(midiInWin.DeviceID);
-                    //Debug.Log( $"Got message {mqm.messageType} with payload {mqm.message}");
 
                     if(mqm.messageType == MIDIQueuedMessage.MessageType.Invalid)
                         continue;
@@ -589,6 +630,51 @@ public class MIDIMgr :
             { 
                 byte [] rb = miiand.PopMessage();
                 this.ProcessMIDIInputBytes(this.currentInput, rb);
+            }
+#elif UNITY_WEBGL
+
+            string midiJSON = MIDIWeb.FlushInputMessagesJSON();
+            SimpleJSON.JSONNode parseNode = SimpleJSON.JSON.Parse(midiJSON);
+            if(parseNode != null && parseNode.IsArray == true)
+            { 
+                SimpleJSON.JSONArray jsa = parseNode.AsArray;
+                foreach(SimpleJSON.JSONNode jmsg in jsa)
+                { 
+                    if(jmsg.IsObject == false)
+                        continue;
+
+                    string msgty    = jmsg["msg"].Value;
+                    string id       = jmsg["id"].Value;
+                    string name     = jmsg["name"].Value;
+
+                    if(msgty == "statechange")
+                    { 
+                        if(
+                            this.currentInput != null && 
+                            this.currentInput.DeviceName() == name && 
+                            jmsg["state"].Value != "open" &&
+                            jmsg["state"].Value != "connected")
+                        { 
+                            MIDIInput oldInput = this.currentInput;
+                            this.currentInput.Deactivate();
+                            this.currentInput = null;
+                            this.DispatchInputDisconnected(oldInput);
+                        }
+                    }
+                    else if(msgty == "msg")
+                    { 
+                        SimpleJSON.JSONArray jsd = jmsg["data"].AsArray;
+                        if(jsd != null)
+                        {
+                            List<byte> bytes = new List<byte>();
+
+                            foreach(SimpleJSON.JSONNode bn in jsd)
+                                bytes.Add((byte)bn.AsInt);
+
+                            this.ProcessMIDIInputBytes(this.currentInput, bytes.ToArray());
+                        }
+                    }
+                }
             }
 #endif
         }

@@ -81,9 +81,7 @@ namespace PxPre
 
             public void openDevice(MidiDeviceInfo deviceInfo, OnDeviceOpenedListener listener, Handler handler)
             { 
-                Debug.Log("Calling openDevice");
                 this._ajo.Call("openDevice", deviceInfo._ajo, listener, handler._ajo);
-                Debug.Log("Called openDevice");
             }
 
             //public void registerDeviceCallback(MidiManager.DeviceCallback callback, Handler handler)
